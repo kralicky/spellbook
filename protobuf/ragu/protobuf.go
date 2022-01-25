@@ -25,7 +25,8 @@ type Proto struct {
 }
 
 var Config = struct {
-	Protos []Proto
+	Protos  []Proto
+	Options []ragu.GenerateCodeOption
 }{}
 
 func Protobuf() error {
@@ -37,7 +38,7 @@ func Protobuf() error {
 		wg.Add(1)
 		go func(proto Proto) {
 			defer wg.Done()
-			protos, err := ragu.GenerateCode(proto.Source, true)
+			protos, err := ragu.GenerateCode(proto.Source, Config.Options...)
 			if err != nil {
 				mu.Lock()
 				errs = append(errs, err)
