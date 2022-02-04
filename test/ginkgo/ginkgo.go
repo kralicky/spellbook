@@ -21,7 +21,6 @@ var Config = struct {
 	GinkgoArgs: []string{
 		"-r",
 		"--randomize-suites",
-		"--fail-on-pending",
 		"--keep-going",
 		"--cover",
 		"--coverprofile=cover.out",
