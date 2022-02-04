@@ -3,7 +3,9 @@ package build
 import (
 	"os"
 	"path/filepath"
+	"sync"
 
+	"emperror.dev/errors"
 	"github.com/kralicky/spellbook/internal/deps"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -19,9 +21,10 @@ var (
 )
 
 var Config = struct {
-	CgoEnabled bool
-	ExtraFlags []string
-	ExtraEnv   map[string]string
+	CgoEnabled   bool
+	ExtraFlags   []string
+	ExtraEnv     map[string]string
+	ExtraTargets map[string]string
 }{}
 
 func Build() error {
@@ -53,16 +56,30 @@ func Build() error {
 			}
 		}
 	}
-	for dir, dest := range binaries {
-		env := map[string]string{
-			"CGO_ENABLED": cgoEnabled,
-		}
-		for k, v := range Config.ExtraEnv {
-			env[k] = v
-		}
-		if err := sh.RunWith(env, mg.GoCmd(), "build", "-ldflags", "-w -s", "-o", dest, dir); err != nil {
-			return err
-		}
+	for dir, dest := range Config.ExtraTargets {
+		binaries[dir] = dest
 	}
-	return nil
+
+	wg := sync.WaitGroup{}
+	errs := []error{}
+	mu := sync.Mutex{}
+	for dir, dest := range binaries {
+		wg.Add(1)
+		go func(dir, dest string) {
+			defer wg.Done()
+			env := map[string]string{
+				"CGO_ENABLED": cgoEnabled,
+			}
+			for k, v := range Config.ExtraEnv {
+				env[k] = v
+			}
+			if err := sh.RunWith(env, mg.GoCmd(), "build", "-ldflags", "-w -s", "-o", dest, dir); err != nil {
+				mu.Lock()
+				errs = append(errs, err)
+				mu.Unlock()
+			}
+		}(dir, dest)
+	}
+	wg.Wait()
+	return errors.Combine(errs...)
 }
