@@ -3,9 +3,9 @@ module github.com/kralicky/spellbook
 go 1.17
 
 require (
-	emperror.dev/errors v0.8.0
-	github.com/kralicky/ragu v0.2.4
-	github.com/magefile/mage v1.12.1
+	emperror.dev/errors v0.8.1
+	github.com/kralicky/ragu v0.2.7-0.20220322001830-a91fb830491b
+	github.com/magefile/mage v1.13.0
 )
 
 require (
@@ -25,13 +25,13 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/yoheimuta/go-protoparser/v4 v4.5.0 // indirect
+	github.com/yoheimuta/go-protoparser/v4 v4.5.4 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20220126215142-9970aeb2e350 // indirect
+	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
