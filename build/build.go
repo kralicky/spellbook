@@ -3,6 +3,7 @@ package build
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"emperror.dev/errors"
@@ -23,9 +24,12 @@ var (
 var Config = struct {
 	CgoEnabled   bool
 	ExtraFlags   []string
+	LDFlags      []string
 	ExtraEnv     map[string]string
 	ExtraTargets map[string]string
-}{}
+}{
+	LDFlags: []string{"-w", "-s"},
+}
 
 func Build() error {
 	buildDeps.Resolve()
@@ -73,7 +77,13 @@ func Build() error {
 			for k, v := range Config.ExtraEnv {
 				env[k] = v
 			}
-			if err := sh.RunWith(env, mg.GoCmd(), "build", "-ldflags", "-w -s", "-o", dest, dir); err != nil {
+			args := []string{"build"}
+			if len(Config.LDFlags) > 0 {
+				args = append(args, "-ldflags", strings.Join(Config.LDFlags, " "))
+			}
+			args = append(args, Config.ExtraFlags...)
+			args = append(args, "-o", dest, dir)
+			if err := sh.RunWith(env, mg.GoCmd(), args...); err != nil {
 				mu.Lock()
 				errs = append(errs, err)
 				mu.Unlock()
