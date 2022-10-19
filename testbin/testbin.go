@@ -1,7 +1,9 @@
 package testbin
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/fs"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -44,6 +47,51 @@ var Config = struct {
 	Dir      string
 }{
 	Dir: "testbin/bin",
+}
+
+func fallbackUntar(binaryName, dst string, r io.Reader) error {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case header == nil:
+			continue
+		}
+		if !strings.HasPrefix(header.Name, binaryName) {
+			continue
+		}
+		target := filepath.Join(dst, binaryName)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			// ignore
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+			if err != nil {
+				return err
+			}
+			// copy over contents
+			if _, err := io.Copy(f, tr); err != nil {
+				return err
+			}
+
+			// manually close here after each file operation; defering would cause each file close
+			// to wait until all operations have completed.
+			f.Close()
+		}
+	}
 }
 
 func Testbin() error {
@@ -157,7 +205,16 @@ func downloadBinary(binary Binary) error {
 		if err != nil {
 			return err
 		}
-		if len(entries) == 1 {
+		if len(entries) == 0 { // something is wrong, try fallback
+			archiveReader, err := os.Open(archiveFile)
+			if err != nil {
+				archiveReader.Close()
+				return err
+			}
+			fallbackUntar(binary.Name, Config.Dir, archiveReader)
+			archiveReader.Close()
+			return nil
+		} else if len(entries) == 1 {
 			topLevelDir = entries[0].Name()
 		} else {
 			return errors.New(fmt.Sprintf("unexpected number of top-level directories in archive (%d)", len(entries)))
